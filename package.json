@@ -1,0 +1,37 @@
+{
+  "name": "com.sniveler-code.gpu-animation",
+  "version": "0.2.1",
+  "displayName": "Gpu Animation Entities",
+  "description": "Bake animations to textures",
+  "unity": "2022.2",
+  "unityRelease": "1f1",
+  "documentationUrl": "https://example.com/",
+  "dependencies": {
+    "com.unity.entities": "1.0.0-pre.15",
+	"com.unity.entities.graphics" : "1.0.0-pre.15",
+	"com.unity.burst" : "1.7.4"
+ },
+ "keywords": [
+    "gpu",
+    "animation",
+    "instancing",
+	"entities"
+  ],
+  "samples": [
+	{
+		"displayName": "Flying",
+		"description": "Contains sample flying model via animation texture",
+		"path": "Samples~/Flying"
+	},
+	{
+		"displayName": "Walking",
+		"description": "Contains sample walking model via animation texture",
+		"path": "Samples~/Walking"
+	}
+  ],
+  "author": {
+    "name": "chamele0n",
+    "email": "karpushin.igor@gmail.com",
+    "url": "https://github.com/igor-karpushin"
+  }
+}
