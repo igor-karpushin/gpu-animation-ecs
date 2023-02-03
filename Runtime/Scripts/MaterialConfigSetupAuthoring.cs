@@ -20,7 +20,7 @@ namespace SnivelerCode.GpuAnimation.Scripts
         void OnEnable()
         {
             var meshRenderer = GetComponentInChildren<MeshRenderer>();
-            if(!meshRenderer) return;
+            if(meshRenderer == null) return;
             if(animations == null) return;
             if(alphaMeshes == null) return;
             
@@ -34,7 +34,7 @@ namespace SnivelerCode.GpuAnimation.Scripts
                 propertyChild.SetFloat(s_ModelShown, 1f);
                 propertyChild.SetVector(s_RenderPixel, new Vector4(materialAnimation.Start, materialAnimation.Start, 0));
                 meshRenderer.SetPropertyBlock(propertyChild, i);
-            }  
+            } 
         }
 #endif
 
