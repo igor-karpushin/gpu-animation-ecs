@@ -1,4 +1,3 @@
-using System.Collections;
 using TMPro;
 using Unity.Entities;
 using UnityEngine;
@@ -16,21 +15,11 @@ namespace SnivelerCode.Samples.Gui
         TMP_Text entriesLabel;
         Coroutine m_Coroutine;
 
-        void OnEnable() => StartCoroutine(UpdateLabels());
-
-        void OnDisable() => StopAllCoroutines();
-
-        IEnumerator UpdateLabels()
+        void FixedUpdate()
         {
-            var manager = World.All[0].EntityManager;
-            var query = manager.CreateEntityQuery(typeof(FlyingEntry));
-            
-            while (true)
-            {
-                yield return new WaitForSeconds(0.5f);
-                fpsLabel.text = $"fps: {(int)(1.0f / Time.smoothDeltaTime)}";
-                entriesLabel.text = $"entries: {query.CalculateEntityCount()}";    
-            }
+            var query = World.All[0].EntityManager.CreateEntityQuery(typeof(FlyingEntry));
+            fpsLabel.text = $"fps: {(int)(1.0f / Time.smoothDeltaTime)}";
+            entriesLabel.text = $"entries: {query.CalculateEntityCount()}";    
         }
     }   
 }

@@ -20,10 +20,14 @@ namespace SnivelerCode.Samples.Components
                     SpawnTime = data.spawnTimer
                 });
                 AddComponent(default(FlyingSpawnData));
-                var buffer = AddBuffer<FlyingSpawnBuffer>();
-                foreach (var gamObject in data.prefabs)
+
+                if (data.prefabs != null)
                 {
-                    buffer.Add(new FlyingSpawnBuffer { Value = GetEntity(gamObject) });
+                    var buffer = AddBuffer<FlyingSpawnBuffer>();
+                    foreach (var gamObject in data.prefabs)
+                    {
+                        buffer.Add(new FlyingSpawnBuffer { Value = GetEntity(gamObject) });
+                    }    
                 }
             }
         }
