@@ -283,8 +283,7 @@ namespace SnivelerCode.GpuAnimation.Scripts.Editor
                 writePixels.Add(new GeneratorAnimationTexture(2048));
             }
 
-            var basePath = Path.Combine("Assets", "Generated", m_BatchName);
-            var resourcePath = Path.Combine(basePath, "Prefabs");
+            var resourcePath = Path.Combine("Assets", "Generated", m_BatchName);
             ForceDirectory(resourcePath);
 
             m_BaseTexture = new Texture2D(4096, 4096, TextureFormat.RGBA32, true);
@@ -304,6 +303,7 @@ namespace SnivelerCode.GpuAnimation.Scripts.Editor
 
                 for (var i = 0; i < sharedMesh.subMeshCount; ++i)
                 {
+                    // todo: create normal specular other maps
                     /*var textureNames = renderer.sharedMaterials[i].GetTexturePropertyNames();
                     foreach (var textureName in textureNames)
                     {
@@ -342,7 +342,7 @@ namespace SnivelerCode.GpuAnimation.Scripts.Editor
                 var clonePrefab = GenerateMeshRendererObject(prefabInstance.Source.name, prefabMesh, baseMaterial);
                 
                 // first animation -> t pose
-                /*var animations = new List<MaterialAnimation>
+                var animations = new List<MaterialAnimation>
                 {
                     new() { Frames = 1, Start = (ushort)pixelIndex, Speed = 1 }
                 };
@@ -374,7 +374,7 @@ namespace SnivelerCode.GpuAnimation.Scripts.Editor
                 var configComponent = clonePrefab.AddComponent<MaterialConfigSetupAuthoring>();
                 configComponent.Setup(renderer.bones.Length, animations, prefabInstance.SubAlpha);
                 
-                PrefabUtility.SaveAsPrefabAsset(clonePrefab, Path.Combine(prefabDirectory, $"{clonePrefab.name}.prefab"));*/
+                PrefabUtility.SaveAsPrefabAsset(clonePrefab, Path.Combine(prefabDirectory, $"{clonePrefab.name}.prefab"));
                 
                 DestroyImmediate(clonePrefab);
             }

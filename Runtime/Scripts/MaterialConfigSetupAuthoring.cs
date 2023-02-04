@@ -45,25 +45,28 @@ namespace SnivelerCode.GpuAnimation.Scripts
             alphaMeshes = alpha;
             animationIndex = 0;
         }
-
-        class MaterialSetupBaker : Baker<MaterialConfigSetupAuthoring>
+    }
+    
+    public class MaterialSetupBaker : Baker<MaterialConfigSetupAuthoring>
+    {
+        public override void Bake(MaterialConfigSetupAuthoring data)
         {
-            public override void Bake(MaterialConfigSetupAuthoring data)
+            AddComponent(new MaterialConfigStatic
             {
-                AddComponent(new MaterialConfigStatic
-                {
-                    AnimationIndex = (byte)data.animationIndex,
-                    BoneCount = (byte)data.bonesCount
-                });
-                AddComponent(new MaterialConfigRender { AnimationIndex = (byte)data.animationIndex });
-                AddComponent<MaterialFirstSetup>();
+                AnimationIndex = (byte)data.animationIndex,
+                BoneCount = (byte)data.bonesCount
+            });
+            AddComponent(new MaterialConfigRender { AnimationIndex = (byte)data.animationIndex });
+            AddComponent<MaterialFirstSetup>();
 
+            if (data.animations != null)
+            {
                 var animationBuffer = AddBuffer<MaterialAnimation>();
-                foreach (var animation in data.animations)
-                {
-                    animationBuffer.Add(animation);
-                }
+                data.animations.ForEach(value => animationBuffer.Add(value));
+            }
 
+            if (data.alphaMeshes != null)
+            {
                 var alphaBuffer = AddBuffer<MaterialSubMeshAlpha>();
                 data.alphaMeshes.ForEach(value =>
                     alphaBuffer.Add(new MaterialSubMeshAlpha { Value = value }));
