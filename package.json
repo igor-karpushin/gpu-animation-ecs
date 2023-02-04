@@ -1,7 +1,7 @@
 {
   "name": "com.sniveler-code.gpu-animation",
   "version": "0.2.1",
-  "displayName": "Gpu Animation Entities",
+  "displayName": "SnivelerCodeGpuAnimation",
   "description": "Bake animations to textures",
   "unity": "2022.2",
   "unityRelease": "1f1",

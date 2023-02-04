@@ -17,24 +17,27 @@ namespace SnivelerCode.Samples.Components
 
         class WalkingSpawnerBaker : Baker<WalkingSpawnerAuthoring>
         {
-            public override void Bake(WalkingSpawnerAuthoring authoring)
+            public override void Bake(WalkingSpawnerAuthoring data)
             {
                 var random = Random.Range(1, ushort.MaxValue);
-                
-                AddComponent(new WalkingSpawnerConfig
+
+                if (data.prefab != null)
                 {
-                    Prefab = GetEntity(authoring.prefab),
-                    SpawnTimer = authoring.spawnTimer,
-                    MinionRadius = authoring.minionRadius,
-                    MinionSpeed = authoring.minionSpeed,
-                    FallingEndTime = authoring.minionFallTime
-                });
+                    AddComponent(new WalkingSpawnerConfig
+                    {
+                        Prefab = GetEntity(data.prefab),
+                        SpawnTimer = data.spawnTimer,
+                        MinionRadius = data.minionRadius,
+                        MinionSpeed = data.minionSpeed,
+                        FallingEndTime = data.minionFallTime
+                    });
                 
-                AddComponent(new WalkingSpawnerData
-                {
-                    CurrentTimer = authoring.spawnTimer - 1,
-                    Random = new Unity.Mathematics.Random((uint)random)
-                });
+                    AddComponent(new WalkingSpawnerData
+                    {
+                        CurrentTimer = data.spawnTimer - 1,
+                        Random = new Unity.Mathematics.Random((uint)random)
+                    });
+                }
             }
         }
     }
