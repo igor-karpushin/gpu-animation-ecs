@@ -1,3 +1,4 @@
+using System.Collections;
 using TMPro;
 using Unity.Entities;
 using UnityEngine;
@@ -15,11 +16,20 @@ namespace SnivelerCode.Samples.Gui
         TMP_Text entriesLabel;
         Coroutine m_Coroutine;
 
-        void FixedUpdate()
+        void Start() => StartCoroutine(StatsUpdate());
+        
+        IEnumerator StatsUpdate()
         {
-            var query = World.All[0].EntityManager.CreateEntityQuery(typeof(WalkingMinionConfig));
-            fpsLabel.text = $"fps: {(int)(1.0f / Time.smoothDeltaTime)}";
-            entriesLabel.text = $"entries: {query.CalculateEntityCount()}";  
+            yield return null;
+            var manager = World.All[0].EntityManager;
+            var query = manager.CreateEntityQuery(typeof(WalkingMinionConfig));
+            while (true)
+            {
+                yield return new WaitForSeconds(0.2f);
+                fpsLabel.text = $"fps: {(int)(1.0f / Time.smoothDeltaTime)}";
+                entriesLabel.text = $"entries: {query.CalculateEntityCount()}";    
+            }
+            // ReSharper disable once IteratorNeverReturns
         }
     }   
 }

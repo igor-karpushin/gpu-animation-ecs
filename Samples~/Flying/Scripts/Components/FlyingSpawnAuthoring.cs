@@ -9,25 +9,25 @@ namespace SnivelerCode.Samples.Components
         public List<GameObject> prefabs;
         public int totalCount;
         public float spawnTimer;
-
-        class SceneWalkingBaker : Baker<FlyingSpawnAuthoring>
+    }
+    
+    public class SceneWalkingBaker : Baker<FlyingSpawnAuthoring>
+    {
+        public override void Bake(FlyingSpawnAuthoring data)
         {
-            public override void Bake(FlyingSpawnAuthoring data)
+            AddComponent(new FlyingSpawnConfig
             {
-                AddComponent(new FlyingSpawnConfig
-                {
-                    SpawnTotalCount = (ushort)data.totalCount,
-                    SpawnTime = data.spawnTimer
-                });
-                AddComponent(default(FlyingSpawnData));
+                SpawnTotalCount = (ushort)data.totalCount,
+                SpawnTime = data.spawnTimer
+            });
+            AddComponent(default(FlyingSpawnData));
 
-                if (data.prefabs != null)
+            if (data.prefabs != null)
+            {
+                var buffer = AddBuffer<FlyingSpawnBuffer>();
+                foreach (var gamObject in data.prefabs)
                 {
-                    var buffer = AddBuffer<FlyingSpawnBuffer>();
-                    foreach (var gamObject in data.prefabs)
-                    {
-                        buffer.Add(new FlyingSpawnBuffer { Value = GetEntity(gamObject) });
-                    }
+                    buffer.Add(new FlyingSpawnBuffer { Value = GetEntity(gamObject) });
                 }
             }
         }
