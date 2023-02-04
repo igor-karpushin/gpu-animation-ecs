@@ -15,11 +15,6 @@ namespace SnivelerCode.Samples.Components
         public float minionSpeed;
         public float minionFallTime;
 
-        void OnDrawGizmos()
-        {
-            Gizmos.DrawSphere(transform.position, 0.1f);
-        }
-
         class WalkingSpawnerBaker : Baker<WalkingSpawnerAuthoring>
         {
             public override void Bake(WalkingSpawnerAuthoring authoring)

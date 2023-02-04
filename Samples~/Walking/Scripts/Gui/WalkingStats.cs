@@ -1,8 +1,9 @@
 using System.Collections;
-using SnivelerCode.Samples.Components;
 using TMPro;
 using Unity.Entities;
 using UnityEngine;
+
+using SnivelerCode.Samples.Components;
 
 namespace SnivelerCode.Samples.Gui
 {
