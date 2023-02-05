@@ -5,7 +5,7 @@
   "description": "Bake animations to textures",
   "unity": "2022.2",
   "unityRelease": "1f1",
-  "documentationUrl": "https://example.com/",
+  "documentationUrl": "https://github.com/igor-karpushin/com.sniveler-code.gpu-animation",
   "dependencies": {
     "com.unity.entities": "1.0.0-pre.15",
 	"com.unity.entities.graphics" : "1.0.0-pre.15",
