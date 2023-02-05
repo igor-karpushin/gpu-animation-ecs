@@ -1,3 +1,5 @@
+#if UNITY_EDITOR
+
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -28,3 +30,5 @@ namespace SnivelerCode.GpuAnimation.Scripts.Editor
         public void Write(int index, Color color) => Pixels[index] = color;
     }
 }
+
+#endif
