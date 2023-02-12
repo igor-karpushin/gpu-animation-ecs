@@ -19,22 +19,27 @@ namespace SnivelerCode.GpuAnimation.Scripts
 #if UNITY_EDITOR
         void OnEnable()
         {
-            var meshRenderer = GetComponentInChildren<MeshRenderer>();
-            if(meshRenderer == null) return;
+            var logGroup = GetComponentInChildren<LODGroup>();
+            if(logGroup == null) return;
             if(animations == null) return;
             if(alphaMeshes == null) return;
             
             var materialAnimation = animations[animationIndex % animations.Count];
-                
-            for (var i = 0; i < meshRenderer.sharedMaterials.Length; ++i)
+            
+            var lods = logGroup.GetLODs();
+            for (var i = 0; i < lods.Length; ++i)
             {
-                var propertyChild = new MaterialPropertyBlock();
-                meshRenderer.GetPropertyBlock(propertyChild, i);
-                propertyChild.SetFloat(s_AlphaClip, alphaMeshes[i] ? 1f : 0f);
-                propertyChild.SetFloat(s_ModelShown, 1f);
-                propertyChild.SetVector(s_RenderPixel, new Vector4(materialAnimation.Start, materialAnimation.Start, 0));
-                meshRenderer.SetPropertyBlock(propertyChild, i);
-            } 
+                var lodRenderer = lods[i].renderers[0];
+                for (var k = 0; k < lodRenderer.sharedMaterials.Length; ++k)
+                {
+                    var propertyChild = new MaterialPropertyBlock();
+                    lodRenderer.GetPropertyBlock(propertyChild, k);
+                    propertyChild.SetFloat(s_AlphaClip, alphaMeshes[k] ? 1f : 0f);
+                    propertyChild.SetFloat(s_ModelShown, 1f);
+                    propertyChild.SetVector(s_RenderPixel, new Vector4(materialAnimation.Start, materialAnimation.Start, 0));
+                    lodRenderer.SetPropertyBlock(propertyChild, k);
+                }
+            }
         }
 #endif
 

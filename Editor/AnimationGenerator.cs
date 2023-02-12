@@ -1,9 +1,12 @@
-﻿using System;
+﻿#if UNITY_EDITOR
+
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Unity.Mathematics;
 using UnityEditor;
+using UnityEditor.Animations;
 using UnityEngine;
 using UnityEngine.Rendering;
 
@@ -23,7 +26,7 @@ namespace SnivelerCode.GpuAnimation.Scripts.Editor
         [SerializeField]
         Shader shader;
 
-        static readonly int[] s_AnimTextures = new[]
+        static readonly int[] s_AnimTextures =
         {
             Shader.PropertyToID("_SnivelerMainTextureFirst"),
             Shader.PropertyToID("_SnivelerMainTextureSecond"),
@@ -81,44 +84,40 @@ namespace SnivelerCode.GpuAnimation.Scripts.Editor
                 {
                     if (prefabInstance.Source == null || windowElement != prefabInstance.Source)
                     {
-                        var renderers = windowElement.GetComponentsInChildren<SkinnedMeshRenderer>();
-                        if (renderers.Length > 0)
+                        prefabInstance.Clear();
+                        var renderer = windowElement.GetComponentInChildren<SkinnedMeshRenderer>();
+                        if (renderer && renderer.sharedMesh)
                         {
-                            var sharedMaterials = renderers[0].sharedMaterials;
+                            prefabInstance.Source = windowElement;
+                            prefabInstance.Extend = prefabInstance.Source != null;
+                            
+                            for (var k = 0; k < renderer.bones.Length; ++k)
+                            {
+                                prefabInstance.BoneMap.Add(renderer.bones[k].name, k);
+                            }
+                            prefabInstance.Lods.Add(new GeneratorLodInstance
+                            {
+                                Mesh = renderer.sharedMesh,
+                                Percent = 60,
+                                Locked = true
+                            });
+                            
                             prefabInstance.SubAlpha = new List<bool>();
-                            foreach (var material in sharedMaterials)
+                            foreach (var material in renderer.sharedMaterials)
                             {
                                 var propertyAlpha = material.GetFloat(s_AlphaClip);
                                 prefabInstance.SubAlpha.Add(math.abs(propertyAlpha - 1f) < 0.1f);
                             }
-
-                            var animator = windowElement.GetComponentInChildren<Animator>();
-                            if (animator != null)
+                            
+                            var prefabAnimator = prefabInstance.Source.GetComponentInChildren<Animator>();
+                            if (prefabAnimator)
                             {
-                                prefabInstance.Source = windowElement;
-                                prefabInstance.Extend = true;
-
-                                var clips = animator.runtimeAnimatorController.animationClips;
-                                foreach (var clip in clips)
-                                {
-                                    var clipNameLower = clip.name.ToLower();
-                                    prefabInstance.Clips.Add(clipNameLower, new GeneratorClipInstance
-                                    {
-                                        Enable = false,
-                                        Fps = 15,
-                                        Speed = 1f,
-                                        Source = clip
-                                    });
-                                }
-                            }
-                            else
-                            {
-                                EditorUtility.DisplayDialog("Warning", "Selected object does not have Animator.", "OK");
+                                prefabInstance.AnimatorSet((AnimatorController)prefabAnimator.runtimeAnimatorController);
                             }
                         }
                         else
                         {
-                            EditorUtility.DisplayDialog("Warning", $"{windowElement.name} >> SkinnedMeshRenderer: {renderers.Length}", "OK");
+                            EditorUtility.DisplayDialog("Prefab Error", "No SkinnedMeshRenderer", "ok");
                         }
                     }
                 }
@@ -137,11 +136,11 @@ namespace SnivelerCode.GpuAnimation.Scripts.Editor
 
                 if (prefabInstance.Extend)
                 {
-                    EditorGUILayout.BeginVertical();
+                    EditorGUILayout.BeginVertical(new GUIStyle { padding = new RectOffset(20, 0, 0, 0) });
                     var labelRight = new GUIStyle(GUI.skin.label)
                     {
-                        alignment = TextAnchor.MiddleRight,
-                        padding = new RectOffset(0, 5, 0, 0),
+                        alignment = TextAnchor.MiddleLeft,
+                        padding = new RectOffset(5, 5, 0, 0),
                         normal = new GUIStyleState
                         {
                             textColor = Color.yellow,
@@ -150,53 +149,140 @@ namespace SnivelerCode.GpuAnimation.Scripts.Editor
                     };
 
                     // clips
-                    GUILayout.Label("Include Clips", labelRight);
+                    GUILayout.Label("Animator Setup", labelRight);
 
-                    foreach (var clipName in prefabInstance.Clips.Keys)
+                    EditorGUILayout.BeginHorizontal();
+                    var windowAnimator = (AnimatorController)EditorGUILayout.ObjectField(prefabInstance.Animator, typeof(AnimatorController), true);
+                    var prefabAnimator = prefabInstance.Source.GetComponentInChildren<Animator>();
+                    if (prefabAnimator)
                     {
-                        var animInfo = prefabInstance.Clips[clipName];
+                        if (GUILayout.Button("From Prefab"))
+                        {
+                            var prefabAnimatorRuntime = (AnimatorController)prefabAnimator.runtimeAnimatorController;
+                            if (prefabAnimatorRuntime)
+                            {
+                                windowAnimator = (AnimatorController)prefabAnimator.runtimeAnimatorController;
+                            }
+                        }
+                    }
+
+                    EditorGUILayout.EndHorizontal();
+
+                    if (prefabInstance.Animator != windowAnimator)
+                    {
+                        prefabInstance.AnimatorSet(windowAnimator);
+                    }
+
+                    if (prefabInstance.Clips.Count > 0)
+                    {
+                        foreach (var clipName in prefabInstance.Clips.Keys)
+                        {
+                            var animInfo = prefabInstance.Clips[clipName];
+                            EditorGUILayout.BeginHorizontal();
+                            GUILayout.Space(10);
+                            animInfo.Enable = GUILayout.Toggle(animInfo.Enable, $"{clipName}", new GUIStyle(GUI.skin.toggle)
+                            {
+                                alignment = TextAnchor.MiddleRight,
+                                fixedWidth = 100
+                            });
+
+                            GUI.enabled = animInfo.Enable;
+                            GUILayout.Space(20);
+                            animInfo.Fps = (int)GUILayout.HorizontalSlider(animInfo.Fps, 15, 30, GUILayout.Width(70));
+                            GUILayout.Label(animInfo.Fps + " Fps");
+
+                            animInfo.Speed = GUILayout.HorizontalSlider(animInfo.Speed, 0.5f, 4f, GUILayout.Width(70));
+
+                            var speedValue = GUILayout.TextField(animInfo.Speed.ToString("F2"), 4);
+                            if (float.TryParse(speedValue, out var value))
+                            {
+                                animInfo.Speed = math.clamp(value, 0.5f, 4f);
+                            }
+
+                            GUILayout.Label("speed");
+                            GUILayout.Space(40);
+                            GUI.enabled = true;
+                            EditorGUILayout.EndHorizontal();
+                        }
+                    }
+                    else
+                    {
+                        EditorGUILayout.HelpBox("No Animator Clips Find", MessageType.Warning);
+                    }
+
+                    // load setup
+                    GUILayout.Label("Lods Setup", labelRight);
+                    foreach (var lodInstance in prefabInstance.Lods)
+                    {
                         EditorGUILayout.BeginHorizontal();
-                        GUILayout.Space(10);
-                        animInfo.Enable = GUILayout.Toggle(animInfo.Enable, $"{clipName}", new GUIStyle(GUI.skin.toggle)
+                        GUILayout.Label("Camera", GUILayout.Width(60));
+                        lodInstance.Percent = (int)GUILayout.HorizontalSlider(lodInstance.Percent, 100, 0, GUILayout.Width(70));
+
+                        EditorGUI.BeginDisabledGroup(lodInstance.Locked);
+                        GUILayout.Label($"{lodInstance.Percent}%", GUILayout.Width(40));
+                        
+                        var buttonPressed = false;
+                        var windowMesh = (Mesh)EditorGUILayout.ObjectField(lodInstance.Mesh, typeof(Mesh), true);
+                        if (windowMesh)
                         {
-                            alignment = TextAnchor.MiddleRight,
-                            fixedWidth = 100
-                        });
-
-                        GUI.enabled = animInfo.Enable;
-                        GUILayout.Space(20);
-                        animInfo.Fps = (int)GUILayout.HorizontalSlider(animInfo.Fps, 15, 30, GUILayout.Width(70));
-                        GUILayout.Label(animInfo.Fps + " Fps");
-
-                        animInfo.Speed = GUILayout.HorizontalSlider(animInfo.Speed, 0.5f, 4f, GUILayout.Width(70));
-
-                        var speedValue = GUILayout.TextField(animInfo.Speed.ToString("F2"), 4);
-                        if (float.TryParse(speedValue, out var value))
-                        {
-                            animInfo.Speed = math.clamp(value, 0.5f, 4f);
+                            var assetMeshPath = AssetDatabase.GetAssetPath(windowMesh);
+                            var assetPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(assetMeshPath);
+                            
+                            SkinnedMeshRenderer skinRenderer;
+                            if (assetPrefab && (skinRenderer = assetPrefab.GetComponentInChildren<SkinnedMeshRenderer>()))
+                            {
+                                lodInstance.Mesh = windowMesh;
+                                lodInstance.Skin = skinRenderer;
+                            }
+                            else
+                            {
+                                EditorUtility.DisplayDialog("Mesh Prefab Error", "No SkinnedMeshRenderer", "ok");
+                            } 
                         }
 
-                        GUILayout.Label("speed");
+                        if (!lodInstance.Locked)
+                        {
+                            buttonPressed = GUILayout.Button("remove", GUILayout.Width(60));
+                        }
 
-                        GUILayout.Space(40);
-
-                        GUI.enabled = true;
-
+                        EditorGUI.EndDisabledGroup();
                         EditorGUILayout.EndHorizontal();
+                        
+                        if (buttonPressed)
+                        {
+                            prefabInstance.Lods.Remove(lodInstance);
+                            break;
+                        }
+                    }
+
+                    if (GUILayout.Button("add lod", GUILayout.Width(200)))
+                    {
+                        prefabInstance.Lods.Add(new GeneratorLodInstance
+                        {
+                            Percent = (int)(prefabInstance.Lods.Last().Percent * 0.5f)
+                        });
                     }
 
                     EditorGUILayout.EndVertical();
                 }
             }
 
+            EditorGUILayout.BeginHorizontal();
+
             if (GUILayout.Button("Add Prefab"))
             {
-                m_Prefabs.Add(new GeneratorPrefabInstance
-                {
-                    Clips = new Dictionary<string, GeneratorClipInstance>(),
-                    Extend = false
-                });
+                var prefabInstance = new GeneratorPrefabInstance();
+                prefabInstance.Clear();
+                m_Prefabs.Add(prefabInstance);
             }
+
+            if (GUILayout.Button("Generate"))
+            {
+                // directory
+                BuildAnimationTexture();
+            }
+
+            EditorGUILayout.EndHorizontal();
 
             if (m_AnimationTexture != null)
             {
@@ -211,12 +297,6 @@ namespace SnivelerCode.GpuAnimation.Scripts.Editor
                 GUILayout.Space(m_AnimationTexture.height + 5);
             }
 
-            if (GUILayout.Button("Generate"))
-            {
-                // directory
-                BuildAnimationTexture();
-            }
-
             EditorGUILayout.EndVertical();
         }
 
@@ -226,37 +306,6 @@ namespace SnivelerCode.GpuAnimation.Scripts.Editor
             {
                 Directory.CreateDirectory(directory);
             }
-        }
-
-        GameObject GenerateMeshRendererObject(string prefabName, Mesh mesh, Material material)
-        {
-            var instancePrefab = new GameObject { name = prefabName };
-            var attachInstance = instancePrefab;
-            if (mesh.subMeshCount == 1)
-            {
-                attachInstance = new GameObject { name = "Container" };
-                attachInstance.transform.SetParent(instancePrefab.transform);
-            }
-
-            var meshFilter = attachInstance.AddComponent<MeshFilter>();
-            meshFilter.mesh = mesh;
-
-            var subMeshCount = mesh.subMeshCount;
-
-            var renderer = attachInstance.AddComponent<MeshRenderer>();
-            renderer.motionVectorGenerationMode = MotionVectorGenerationMode.ForceNoMotion;
-            renderer.reflectionProbeUsage = ReflectionProbeUsage.Off;
-            renderer.lightProbeUsage = LightProbeUsage.Off;
-
-            var sharedMaterials = new Material[subMeshCount];
-            for (var i = 0; i < subMeshCount; ++i)
-            {
-                sharedMaterials[i] = material;
-            }
-
-            renderer.sharedMaterials = sharedMaterials;
-
-            return instancePrefab;
         }
 
         void PrepareTexture(Texture texture)
@@ -321,7 +370,7 @@ namespace SnivelerCode.GpuAnimation.Scripts.Editor
                     }
                 }
             }
-            
+
             m_MTexturePackRects = m_BaseTexture.PackTextures(
                 partialTextures.Values.ToArray(), 0, 4096);
 
@@ -334,13 +383,12 @@ namespace SnivelerCode.GpuAnimation.Scripts.Editor
                 var prefabDirectory = Path.Combine(resourcePath, prefabInstance.Source.name);
                 ForceDirectory(prefabDirectory);
 
-                var renderer = prefabInstance.Source.GetComponentInChildren<SkinnedMeshRenderer>();
-                // create mesh
-                var prefabMesh = BuildMesh(renderer);
-                AssetDatabase.CreateAsset(prefabMesh, Path.Combine(prefabDirectory, "Mesh.asset"));
+                // build meshes
+                var rootObject = BuildLodMeshProcess(prefabInstance, baseMaterial, mesh =>
+                    AssetDatabase.CreateAsset(mesh, Path.Combine(prefabDirectory, $"{mesh.name}.asset")));
 
-                var clonePrefab = GenerateMeshRendererObject(prefabInstance.Source.name, prefabMesh, baseMaterial);
-                
+                var renderer = prefabInstance.Source.GetComponentInChildren<SkinnedMeshRenderer>();
+
                 // first animation -> t pose
                 var animations = new List<MaterialAnimation>
                 {
@@ -348,7 +396,7 @@ namespace SnivelerCode.GpuAnimation.Scripts.Editor
                 };
                 BuildTPose(renderer, writePixels, ref pixelIndex);
 
-                foreach(var clipName in prefabInstance.Clips.Keys)
+                foreach (var clipName in prefabInstance.Clips.Keys)
                 {
                     var clipInstance = prefabInstance.Clips[clipName];
                     if (clipInstance.Enable)
@@ -362,7 +410,7 @@ namespace SnivelerCode.GpuAnimation.Scripts.Editor
                             Loop = clipInstance.Source.isLooping,
                             Speed = (byte)clipInstance.Speed
                         });
-                        
+
                         foreach (var frame in Enumerable.Range(0, frameCount))
                         {
                             clipInstance.Source.SampleAnimation(prefabInstance.Source, (float)frame / clipInstance.Fps);
@@ -370,13 +418,13 @@ namespace SnivelerCode.GpuAnimation.Scripts.Editor
                         }
                     }
                 }
-                
-                var configComponent = clonePrefab.AddComponent<MaterialConfigSetupAuthoring>();
+
+                var configComponent = rootObject.AddComponent<MaterialConfigSetupAuthoring>();
                 configComponent.Setup(renderer.bones.Length, animations, prefabInstance.SubAlpha);
-                
-                PrefabUtility.SaveAsPrefabAsset(clonePrefab, Path.Combine(prefabDirectory, $"{clonePrefab.name}.prefab"));
-                
-                DestroyImmediate(clonePrefab);
+
+                PrefabUtility.SaveAsPrefabAsset(rootObject, Path.Combine(prefabDirectory, $"{rootObject.name}.prefab"));
+
+                DestroyImmediate(rootObject);
             }
 
             if (pixelIndex == 0)
@@ -436,38 +484,95 @@ namespace SnivelerCode.GpuAnimation.Scripts.Editor
             }
         }
 
-        Mesh BuildMesh(SkinnedMeshRenderer renderer)
+        GameObject BuildLodMeshProcess(GeneratorPrefabInstance instance, Material baseMaterial, Action<Mesh> meshAction)
         {
-            var mesh = Instantiate(renderer.sharedMesh);
-            var uvUpdate = new Vector2[mesh.uv.Length];
-            for (var i = 0; i < mesh.subMeshCount; ++i)
+            var rootObject = new GameObject(instance.Source.name);
+            var lodGroupComponent = rootObject.AddComponent<LODGroup>();
+
+            var lodsGroups = new List<LOD>();
+            var renderer = instance.Source.GetComponentInChildren<SkinnedMeshRenderer>();
+            for (var i = 0; i < instance.Lods.Count; ++i)
             {
-                var mainTexture = renderer.sharedMaterials[i].mainTexture;
+                var lodInstance = instance.Lods[i];
 
-                var textureHash = mainTexture.GetHashCode();
-                var rectIndex = m_PartialTextureIndex[textureHash];
-                var textureRect = m_MTexturePackRects[rectIndex];
+                var lodMesh = lodInstance.Mesh;
+                var mesh = Instantiate(lodMesh);
+                mesh.name = "LodMesh" + lodInstance.Percent;
 
-                var subMeshInfo = mesh.GetSubMesh(i);
-                for (var v = 0; v < subMeshInfo.vertexCount; ++v)
+                var uvUpdate = new Vector2[mesh.uv.Length];
+                for (var k = 0; k < mesh.subMeshCount; ++k)
                 {
-                    var uvVector = mesh.uv[subMeshInfo.firstVertex + v];
-                    uvUpdate[subMeshInfo.firstVertex + v] = new Vector2
+                    var mainTexture = renderer.sharedMaterials[k].mainTexture;
+
+                    var textureHash = mainTexture.GetHashCode();
+                    var rectIndex = m_PartialTextureIndex[textureHash];
+                    var textureRect = m_MTexturePackRects[rectIndex];
+
+                    var subMeshInfo = mesh.GetSubMesh(k);
+                    for (var v = 0; v < subMeshInfo.vertexCount; ++v)
                     {
-                        x = uvVector.x * textureRect.width + textureRect.x,
-                        y = uvVector.y * textureRect.height + textureRect.y
-                    };
+                        var uvVector = mesh.uv[subMeshInfo.firstVertex + v];
+                        uvUpdate[subMeshInfo.firstVertex + v] = new Vector2
+                        {
+                            x = uvVector.x * textureRect.width + textureRect.x,
+                            y = uvVector.y * textureRect.height + textureRect.y
+                        };
+                    }
                 }
+
+                mesh.SetUVs(0, uvUpdate);
+
+                var boneIndexes = new List<Vector4>();
+                var boneWeights = new List<Vector4>();
+                var skinBones = lodInstance.Skin.bones;
+                foreach (var boneWeight in mesh.boneWeights)
+                {
+                    var boneIndex0 = instance.BoneMap[skinBones[boneWeight.boneIndex0].name];
+                    var boneIndex1 = instance.BoneMap[skinBones[boneWeight.boneIndex1].name];
+                    var boneIndex2 = instance.BoneMap[skinBones[boneWeight.boneIndex2].name];
+                    var boneIndex3 = instance.BoneMap[skinBones[boneWeight.boneIndex3].name];
+                    boneIndexes.Add(new Vector4(boneIndex0, boneIndex1, boneIndex2, boneIndex3));
+                    boneWeights.Add(new Vector4(boneWeight.weight0, boneWeight.weight1, boneWeight.weight2, boneWeight.weight3));
+                }
+                
+                mesh.SetUVs(2, boneIndexes);
+                mesh.SetUVs(3, boneWeights);
+
+                meshAction?.Invoke(mesh);
+
+                var lodObject = new GameObject("LodModel" + lodInstance.Percent);
+                lodObject.transform.SetParent(rootObject.transform);
+
+                var meshFilter = lodObject.AddComponent<MeshFilter>();
+                meshFilter.mesh = mesh;
+
+                var subMeshCount = mesh.subMeshCount;
+
+                var meshRenderer = lodObject.AddComponent<MeshRenderer>();
+                meshRenderer.motionVectorGenerationMode = MotionVectorGenerationMode.ForceNoMotion;
+                meshRenderer.reflectionProbeUsage = ReflectionProbeUsage.Off;
+                meshRenderer.lightProbeUsage = LightProbeUsage.Off;
+
+                var sharedMaterials = new Material[subMeshCount];
+                for (var k = 0; k < subMeshCount; ++k)
+                {
+                    sharedMaterials[k] = baseMaterial;
+                }
+
+                meshRenderer.sharedMaterials = sharedMaterials;
+
+                lodsGroups.Add(new LOD
+                {
+                    screenRelativeTransitionHeight = lodInstance.Percent * 0.01f,
+                    renderers = new Renderer[] { meshRenderer }
+                });
             }
 
-            var boneSets = renderer.sharedMesh.boneWeights;
-            var boneIndexes = boneSets.Select(x => new Vector4(x.boneIndex0, x.boneIndex1, x.boneIndex2, x.boneIndex3)).ToList();
-            var boneWeights = boneSets.Select(x => new Vector4(x.weight0, x.weight1, x.weight2, x.weight3)).ToList();
+            lodGroupComponent.SetLODs(lodsGroups.ToArray());
 
-            mesh.SetUVs(0, uvUpdate);
-            mesh.SetUVs(2, boneIndexes);
-            mesh.SetUVs(3, boneWeights);
-            return mesh;
+            return rootObject;
         }
     }
 }
+
+#endif

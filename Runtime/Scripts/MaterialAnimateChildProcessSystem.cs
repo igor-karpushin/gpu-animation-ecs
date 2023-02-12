@@ -1,7 +1,7 @@
 using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
-using Unity.Transforms;
+using Unity.Rendering;
 
 namespace SnivelerCode.GpuAnimation.Scripts
 {
@@ -18,7 +18,7 @@ namespace SnivelerCode.GpuAnimation.Scripts
             m_LookMaterialConfig = state.GetComponentLookup<MaterialConfigRender>(true);
             
             var builder = new EntityQueryBuilder(Allocator.Temp)
-                .WithAll<PreviousParent>()
+                .WithAll<MeshLODComponent>()
                 .WithAllRW<MaterialRenderPixel>();
 
             state.RequireForUpdate(state.GetEntityQuery(in builder));
@@ -43,11 +43,11 @@ namespace SnivelerCode.GpuAnimation.Scripts
             public float DeltaTime;
             [ReadOnly] public ComponentLookup<MaterialConfigRender> LookMaterials;
 
-            void Execute(in PreviousParent parent, ref MaterialRenderPixel data)
+            void Execute(in MeshLODComponent lod, ref MaterialRenderPixel data)
             {
-                if (LookMaterials.HasComponent(parent.Value))
+                if (LookMaterials.HasComponent(lod.Group))
                 {
-                    data.Value = LookMaterials[parent.Value].RenderConfig;
+                    data.Value = LookMaterials[lod.Group].RenderConfig;
                 }
             }
         }

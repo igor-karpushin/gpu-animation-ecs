@@ -1,11 +1,11 @@
 {
   "name": "com.sniveler-code.gpu-animation",
-  "version": "0.2.1",
-  "displayName": "SnivelerCodeGpuAnimation",
-  "description": "Bake animations to textures",
+  "version": "0.3.1",
+  "displayName": "Sniveler Code Gpu Animation",
+  "description": "1. Bake animations multiple prefabs to textures\r\n2. Using next frame for linear translation (low fps, less texture size)\r\n3. Use job systems for calculate animation time\r\n4. Lods support",
   "unity": "2022.2",
   "unityRelease": "1f1",
-  "documentationUrl": "https://example.com/",
+  "documentationUrl": "https://github.com/igor-karpushin/com.sniveler-code.gpu-animation",
   "dependencies": {
     "com.unity.entities": "1.0.0-pre.15",
 	"com.unity.entities.graphics" : "1.0.0-pre.15",

@@ -15,7 +15,7 @@ namespace SnivelerCode.Samples.Gui
         [SerializeField]
         TMP_Text entriesLabel;
         Coroutine m_Coroutine;
-
+        
         void Start() => StartCoroutine(StatsUpdate());
         
         IEnumerator StatsUpdate()

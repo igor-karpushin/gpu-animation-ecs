@@ -1,4 +1,3 @@
-using System;
 using System.Collections;
 using TMPro;
 using Unity.Entities;
@@ -14,7 +13,7 @@ namespace SnivelerCode.Samples.Gui
         [SerializeField] TMP_Text entriesLabel;
 
         void Start() => StartCoroutine(StatsUpdate());
-
+        
         IEnumerator StatsUpdate()
         {
             yield return null;

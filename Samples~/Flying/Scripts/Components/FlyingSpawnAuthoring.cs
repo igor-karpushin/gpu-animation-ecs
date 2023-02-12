@@ -21,7 +21,7 @@ namespace SnivelerCode.Samples.Components
                 SpawnTime = data.spawnTimer
             });
             AddComponent(default(FlyingSpawnData));
-
+            
             if (data.prefabs != null)
             {
                 var buffer = AddBuffer<FlyingSpawnBuffer>();

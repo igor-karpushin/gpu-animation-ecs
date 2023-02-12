@@ -1,9 +1,1 @@
-# Ignore everything
-/*
-
-# But not these directtories
-!/Assets
-!/Packages
-!/ProjectSettings
-
-/Assets/SceneDependencyCache
+All model are Copyright by Blizzard Entertainment and used for demonstration only

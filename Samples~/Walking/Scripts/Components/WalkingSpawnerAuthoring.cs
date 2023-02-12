@@ -21,7 +21,6 @@ namespace SnivelerCode.Samples.Components
         public override void Bake(WalkingSpawnerAuthoring data)
         {
             var random = Random.Range(1, ushort.MaxValue);
-
             if (data.prefab != null)
             {
                 AddComponent(new WalkingSpawnerConfig
