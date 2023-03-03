@@ -41,30 +41,31 @@ void GetMatrix_float(
     float4x4 bone3_matrix = get_matrix(at1, at2, at3, (uint)frames.x, bone_index.z);
     float4x4 bone4_matrix = get_matrix(at1, at2, at3, (uint)frames.x, bone_index.w);
 
-    const float4 current_position =
-       mul(bone1_matrix, position) * bone_weight.x +
-       mul(bone2_matrix, position) * bone_weight.y +
-       mul(bone3_matrix, position) * bone_weight.z +
-       mul(bone4_matrix, position) * bone_weight.w;
+    const float4x4 combined_first =
+        bone1_matrix * bone_weight.x +
+            bone2_matrix * bone_weight.y +
+                bone3_matrix * bone_weight.z +
+                    bone4_matrix * bone_weight.w;
     
-    anim_normal = 
-        mul(bone1_matrix, normal) * bone_weight.x +
-        mul(bone2_matrix, normal) * bone_weight.y +
-        mul(bone3_matrix, normal) * bone_weight.z +
-        mul(bone4_matrix, normal) * bone_weight.w;
-    
+    const float4 current_position = mul(combined_first, position);
+    const float4 current_normal = mul(combined_first, float4(normal.xyz, 0));
+        
     bone1_matrix = get_matrix(at1, at2, at3, (uint)frames.y, bone_index.x);
     bone2_matrix = get_matrix(at1, at2, at3, (uint)frames.y, bone_index.y);
     bone3_matrix = get_matrix(at1, at2, at3, (uint)frames.y, bone_index.z);
     bone4_matrix = get_matrix(at1, at2, at3, (uint)frames.y, bone_index.w);
 
-    const float4 next_position =
-        mul(bone1_matrix, position) * bone_weight.x +
-        mul(bone2_matrix, position) * bone_weight.y +
-        mul(bone3_matrix, position) * bone_weight.z +
-        mul(bone4_matrix, position) * bone_weight.w;
+    const float4x4 combined_second =
+        bone1_matrix * bone_weight.x +
+            bone2_matrix * bone_weight.y +
+                bone3_matrix * bone_weight.z +
+                    bone4_matrix * bone_weight.w;
+    
+    const float4 next_position = mul(combined_second, position);
+    const float4 next_normal = mul(combined_second, float4(normal.xyz, 0));
     
     anim_position = lerp(current_position, next_position, frames.z);
+    anim_normal = lerp(current_normal, next_normal, frames.z);
 }
 
 #endif
